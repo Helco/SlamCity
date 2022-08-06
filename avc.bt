@@ -1,0 +1,51 @@
+//------------------------------------------------
+//--- 010 Editor v9.0.2 Binary Template
+//
+//      File: 
+//   Authors: 
+//   Version: 
+//   Purpose: 
+//  Category: 
+// File Mask: 
+//  ID Bytes: 
+//   History: 
+//------------------------------------------------
+
+struct Color
+{
+  ushort b : 5;
+  ushort g : 5;
+  ushort r : 5;
+};
+
+struct Record;
+struct Record
+{
+  byte type;
+  byte track;
+  ushort size;
+  local int64 end = FTell() + size;
+  if (type == -15)
+  {
+    Record video, audio;
+  }
+  else if (type == -127)
+  {
+    uint unknown;
+    byte gap;
+    byte colorCount;
+    byte width;
+    byte height;
+    if (colorCount > 0)
+      Color colors[colorCount];
+  }
+  else if (size > 0)
+    byte data[size];
+
+  local int extraSize = end - FTell();
+  if (extraSize > 0)
+    byte extra[extraSize];
+};
+
+while(!FEof())
+  Record record;
