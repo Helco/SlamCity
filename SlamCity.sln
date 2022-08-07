@@ -5,6 +5,10 @@ VisualStudioVersion = 17.2.32526.322
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExtractFCat", "ExtractFCat\ExtractFCat.csproj", "{36E6CB1C-98D2-4317-B4AF-55D25820177D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DigiChrome", "DigiChrome\DigiChrome.csproj", "{EFB2AB9E-23C9-4087-8F81-E8C836AD34AD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DigiChrome.CLI", "DigiChrome.CLI\DigiChrome.CLI.csproj", "{2226B6F6-B777-402F-BCB4-306ADCCFB07A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +19,14 @@ Global
 		{36E6CB1C-98D2-4317-B4AF-55D25820177D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{36E6CB1C-98D2-4317-B4AF-55D25820177D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{36E6CB1C-98D2-4317-B4AF-55D25820177D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EFB2AB9E-23C9-4087-8F81-E8C836AD34AD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EFB2AB9E-23C9-4087-8F81-E8C836AD34AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EFB2AB9E-23C9-4087-8F81-E8C836AD34AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EFB2AB9E-23C9-4087-8F81-E8C836AD34AD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2226B6F6-B777-402F-BCB4-306ADCCFB07A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2226B6F6-B777-402F-BCB4-306ADCCFB07A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2226B6F6-B777-402F-BCB4-306ADCCFB07A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2226B6F6-B777-402F-BCB4-306ADCCFB07A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
