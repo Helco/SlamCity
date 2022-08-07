@@ -10,13 +10,16 @@ unsafe partial class ColorDecoder
             Block_Copy(x, y, BlockSize / 2, BlockSize / 2, outPtr);
         else
             Block4x4_Pattern(ref data, outPtr);
+#if DRAW_BLOCKS
+        DrawDebugBlock4x4(outPtr);
+#endif
     }
 
     private void Block4x4_Pattern(ref ReadOnlySpan<byte> data, byte* outPtr)
     {
         var offsets = ColorOffset4x4(Indices[data[0]]);
         var colors = GetColors(ref data);
-        var pattern = SwapToBE(BitConverter.ToUInt16(data));
+        var pattern = SwapToLE(BitConverter.ToUInt16(data));
         data = data[sizeof(ushort)..];
 
         outPtr += 3 * curWidth * BlockSize;

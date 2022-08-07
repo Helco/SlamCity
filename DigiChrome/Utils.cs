@@ -6,6 +6,9 @@ internal static class Utils
     public static ushort SwapToBE(ushort val) => BitConverter.IsLittleEndian ? Swap(val) : val;
     public static uint SwapToBE(uint val) => BitConverter.IsLittleEndian ? Swap(val) : val;
     public static ulong SwapToBE(ulong val) => BitConverter.IsLittleEndian ? Swap(val) : val;
+    public static ushort SwapToLE(ushort val) => BitConverter.IsLittleEndian ? val : Swap(val);
+    public static uint SwapToLE(uint val) => BitConverter.IsLittleEndian ? val : Swap(val);
+    public static ulong SwapToLE(ulong val) => BitConverter.IsLittleEndian ? val : Swap(val);
 
     public static ushort Swap(ushort val) => unchecked((ushort)((val >> 8) | (val << 8)));
 

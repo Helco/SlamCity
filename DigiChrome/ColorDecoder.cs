@@ -38,6 +38,11 @@ internal unsafe partial class ColorDecoder
         var header = Header(ref data);
         PaletteColors(ref data, header.colorCount);
         Blocks(ref data);
+
+#if DRAW_BLOCKS
+        Palette[255] = new Color(0xffff);
+        Palette[0] = new Color(0);
+#endif
     }
 
     private ColorHeader Header(ref ReadOnlySpan<byte> data)

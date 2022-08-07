@@ -13,6 +13,9 @@ unsafe partial class ColorDecoder
             Block_Copy(x, y, BlockSize, BlockSize, outPtr);
         else
             Block8x8_EmbeddedPattern(ref data, outPtr);
+#if DRAW_BLOCKS
+        DrawDebugBlock8x8(outPtr);
+#endif
     }
 
     private void Block8x8_FixedPattern(ref ReadOnlySpan<byte> data, byte* outPtr)
