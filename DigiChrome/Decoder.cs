@@ -9,13 +9,12 @@ using System.Runtime.InteropServices;
 [StructLayout(LayoutKind.Sequential, Pack = 1, Size = sizeof(ushort))]
 public struct Color
 {
-    private readonly ushort raw;
+    public Color(ushort raw) => this.Raw = raw;
 
-    public Color(ushort raw) => this.raw = raw;
-
-    public byte R => (byte)((raw >> 10) & 0b11111);
-    public byte G => (byte)((raw >> 5) & 0b11111);
-    public byte B => (byte)((raw >> 0) & 0b11111);
+    public readonly ushort Raw;
+    public byte R => (byte)((Raw >> 10) & 0b11111);
+    public byte G => (byte)((Raw >> 5) & 0b11111);
+    public byte B => (byte)((Raw >> 0) & 0b11111);
 }
 
 public class Frame
