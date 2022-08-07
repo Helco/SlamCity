@@ -7,7 +7,10 @@ unsafe partial class ColorDecoder
     private void Block8x4(int x, int y, ref ReadOnlySpan<byte> data, byte* outPtr)
     {
         if (data[0] == TypeCopyHalf)
+        {
             Block_Copy(x, y, BlockSize, BlockSize / 2, outPtr);
+            data = data[1..];
+        }
         else
             Block8x4_Pattern(ref data, outPtr);
 #if DRAW_BLOCKS

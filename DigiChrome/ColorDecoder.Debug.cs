@@ -15,6 +15,7 @@ unsafe partial class ColorDecoder
     }
 
     private void DrawDebugBlock8x8(byte* outPtr) => DrawDebugBlock(8, 8, DebugBlock8x8, outPtr);
+    private void DrawDebugCopyBlock8x8(byte* outPtr) => DrawDebugBlock(8, 8, DebugCopyBlock8x8, outPtr);
     private void DrawDebugBlock8x4(byte* outPtr) => DrawDebugBlock(8, 4, DebugBlock8x4, outPtr);
     private void DrawDebugBlock4x4(byte* outPtr) => DrawDebugBlock(4, 4, DebugBlock4x4, outPtr);
 
@@ -26,6 +27,18 @@ unsafe partial class ColorDecoder
         0, w, w, w, w, w, w, 0,
         0, w, w, 0, 0, w, w, 0,
         0, w, w, 0, 0, w, w, 0,
+        0, w, w, w, w, w, w, 0,
+        0, w, w, w, w, w, w, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+    };
+
+    private static readonly byte[] DebugCopyBlock8x8 =
+    {
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, w, w, w, w, w, w, 0,
+        0, w, w, w, w, w, w, 0,
+        0, w, w, w, w, w, w, 0,
+        0, w, w, w, w, w, w, 0,
         0, w, w, w, w, w, w, 0,
         0, w, w, w, w, w, w, 0,
         0, 0, 0, 0, 0, 0, 0, 0,

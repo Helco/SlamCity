@@ -6,15 +6,22 @@ unsafe partial class ColorDecoder
 {
     private void Block8x8(int x, int y, ref ReadOnlySpan<byte> data, byte* outPtr)
     {
-        int fixedPatternI = Indices[data[0]];
+        var blockType = data[0];
+        int fixedPatternI = Indices[blockType];
         if (fixedPatternI > 0)
             Block8x8_FixedPattern(ref data, outPtr);
-        else if (data[0] == TypeCopyFull)
+        else if (blockType == TypeCopyFull)
+        {
             Block_Copy(x, y, BlockSize, BlockSize, outPtr);
+            data = data[1..];
+        }
         else
             Block8x8_EmbeddedPattern(ref data, outPtr);
 #if DRAW_BLOCKS
-        DrawDebugBlock8x8(outPtr);
+        if (blockType == TypeCopyFull && fixedPatternI <= 0)
+            DrawDebugCopyBlock8x8(outPtr);
+        else
+            DrawDebugBlock8x8(outPtr);
 #endif
     }
 
