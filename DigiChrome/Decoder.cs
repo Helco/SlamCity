@@ -8,6 +8,8 @@ using System.Runtime.InteropServices;
 
 public unsafe class Decoder : IDisposable, IEnumerator<Frame>
 {
+    public const int AudioFrequency = 19800;
+
     private static readonly int SectionSize = 4;
     private static readonly int AudioHeaderSize = 9; // no useful information in the audio headers
 
