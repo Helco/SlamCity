@@ -61,6 +61,7 @@ public static unsafe class Player
 
         while (isRunning)
         {
+            var frameStart = SDL_GetTicks();
             while (SDL_PollEvent(out var ev) > 0)
             {
                 if (ev.type == SDL_EventType.SDL_QUIT)
@@ -122,7 +123,10 @@ public static unsafe class Player
             if (texture != IntPtr.Zero)
                 SDL_RenderCopy(renderer, texture, IntPtr.Zero, IntPtr.Zero);
             SDL_RenderPresent(renderer);
-            SDL_Delay((uint)(1000 * decoder.Current.Audio.Length / Decoder.AudioFrequency));
+            var delay = 1000 * decoder.Current.Audio.Length / Decoder.AudioFrequency;
+            delay -= (int)(SDL_GetTicks() - frameStart);
+            if (delay > 0)
+                SDL_Delay((uint)delay);
         }
     }
 }
