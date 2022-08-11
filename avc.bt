@@ -18,6 +18,17 @@ struct Color
   ushort r : 5;
 };
 
+struct GraphicHeader
+{
+  uint unknown;
+  byte gap;
+  byte colorCount;
+  byte width;
+  byte height;
+  if (colorCount > 0)
+    Color colors[colorCount];
+};
+
 struct Record;
 struct Record
 {
@@ -29,15 +40,9 @@ struct Record
   {
     Record video, audio;
   }
-  else if (type == -127)
+  else if (type == -127 || type == -42)
   {
-    uint unknown;
-    byte gap;
-    byte colorCount;
-    byte width;
-    byte height;
-    if (colorCount > 0)
-      Color colors[colorCount];
+    GraphicHeader graphic;
   }
   else if (size > 0)
     byte data[size];

@@ -1,7 +1,9 @@
 ﻿namespace DigiChrome.CLI;
 using System;
+using System.Buffers;
 using System.IO;
 using System.Text;
+using NAudio.Wave;
 using Decoder = DigiChrome.Decoder;
 
 internal class Program
@@ -10,6 +12,8 @@ internal class Program
     {
         Console.WriteLine("Hello, World!");
         Directory.CreateDirectory("out");
+
+        using var waveWriter = new WaveFileWriter("out.wav", CreateWaveFormat());
 
         using var fileStream = new FileStream(@"C:\Users\Helco\Downloads\Slam City with Scottie Pippen (1995)\SlamCity\CD1\SLAM\open.avc", FileMode.Open, FileAccess.Read);
         using var decoder = new Decoder(fileStream);
@@ -28,6 +32,19 @@ internal class Program
 
             outStream.Write(Encoding.UTF8.GetBytes($"P6\n{frame.Width} {frame.Height}\n255\n"));
             outStream.Write(buffer);
+
+            waveWriter.Write(frame.Audio);
         }
+    }
+
+    static WaveFormat CreateWaveFormat()
+    {
+        int channels = 1;
+        int sampleRate = 19800;
+        int bitsPerSample = 8;
+
+        int blockAlign = (channels * (bitsPerSample / 8));
+        int averageBytesPerSecond = sampleRate * blockAlign;
+        return WaveFormat.CreateCustomFormat(WaveFormatEncoding.Pcm, sampleRate, channels, averageBytesPerSecond, blockAlign, bitsPerSample);
     }
 }

@@ -22,8 +22,7 @@ unsafe partial class ColorDecoder
     {
         var offsets = ColorOffset4x4(Indices[data[0]]);
         var colors = GetColors(ref data);
-        var pattern = SwapToLE(BitConverter.ToUInt16(data));
-        data = data[sizeof(ushort)..];
+        var pattern = ReadU16(ref data);
 
         outPtr += 3 * curWidth * BlockSize;
         for (int i = 0; i < 4; i++)

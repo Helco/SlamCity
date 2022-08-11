@@ -6,67 +6,36 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 
-[StructLayout(LayoutKind.Sequential, Pack = 1, Size = sizeof(ushort))]
-public struct Color
-{
-    public Color(ushort raw) => this.Raw = raw;
-
-    public readonly ushort Raw;
-    public byte R => (byte)((Raw >> 10) & 0b11111);
-    public byte G => (byte)((Raw >> 5) & 0b11111);
-    public byte B => (byte)((Raw >> 0) & 0b11111);
-}
-
-public class Frame
-{
-    private readonly Decoder parent;
-
-    internal Frame(Decoder parent) => this.parent = parent;
-
-    public int Width => parent.colorDecoder.Width;
-    public int Height => parent.colorDecoder.Height;
-    public ReadOnlySpan<Color> Palette => parent.colorDecoder.Palette;
-    public ReadOnlySpan<byte> Color => parent.colorDecoder.Target;
-}
-
-internal enum SectionType : byte
-{
-    Audio = 0xA2,
-    Color = 0x81,
-    Combined = 0xF1
-}
-
-[StructLayout(LayoutKind.Sequential, Pack = 1)]
-internal struct Section
-{
-    public SectionType type;
-    public byte track;
-    public ushort size;
-}
-
 public unsafe class Decoder : IDisposable, IEnumerator<Frame>
 {
+    private static readonly int SectionSize = 4;
+    private static readonly int AudioHeaderSize = 9; // no useful information in the audio headers
+
     internal readonly ColorDecoder colorDecoder = new ColorDecoder();
     private readonly Frame frame;
     private readonly Stream source;
     private readonly bool shouldDisposeStream;
+    private readonly bool strictValidation;
+
+    private Section? nextSection;
     private byte[] frameBuffer;
     private MemoryStream frameStream;
-    private BinaryReader frameReader;
     private bool disposedValue;
+    private Range audioDataRange;
 
     public Frame Current => frame;
     object IEnumerator.Current => Current;
+    internal ReadOnlySpan<byte> CurrentAudio => MemoryMarshal.Cast<byte, byte>(frameBuffer[audioDataRange]);
 
-    public Decoder(Stream source, bool shouldDisposeStream = true)
+    public Decoder(Stream source, bool shouldDisposeStream = true, bool strictValidation = true)
     {
         this.source = source;
         this.shouldDisposeStream = shouldDisposeStream;
+        this.strictValidation = strictValidation;
         frame = new Frame(this);
 
         frameBuffer = null!;
         frameStream = null!;
-        frameReader = null!;
         EnsureFrameBufferSize(21000); // max frame size in "Slam City with Scottie Pippen"
     }
 
@@ -77,35 +46,97 @@ public unsafe class Decoder : IDisposable, IEnumerator<Frame>
 
     public bool MoveNext()
     {
-        Section section;
-        int sectionRead = source.Read(new Span<byte>(&section, sizeof(Section)));
-        if (sectionRead == 0)
-            return false;
-        if (sectionRead != sizeof(Section))
-            throw new EndOfStreamException("Could not read section header");
-        if (section.type != SectionType.Combined)
-            throw new NotSupportedException("Not supporting non-combined sections right now");
+        audioDataRange = default;
+        colorDecoder.Clear();
 
-        EnsureFrameBufferSize(section.size);
-        if (source.Read(frameBuffer, 0, section.size) != section.size)
-            throw new EndOfStreamException("Could not read combined section content");
-        fixed (void* frameBufferPtr = frameBuffer)
-            section = *(Section*)frameBufferPtr;
-        if (section.type != SectionType.Color)
-            throw new NotSupportedException("Unsupported packet at start of combined section");
-        var colorSection = frameBuffer.AsSpan(0, section.size + sizeof(Section));
-        colorDecoder.Decode(colorSection);
+        var section = nextSection ?? Section.TryRead(source);
+        if (!section.HasValue)
+            return false;
+        nextSection = null;
+        
+
+        EnsureFrameBufferSize(section.Value.Size);
+        if (source.Read(frameBuffer, 0, section.Value.Size) != section.Value.Size)
+            throw new EndOfStreamException("Could not read section content");
+
+        switch (section.Value.Type)
+        {
+            case SectionType.Combined:
+                CombinedSection(section.Value);
+                return true;
+
+            case SectionType.Color:
+                ColorSection(section.Value);
+                ReadPotentialPair(SectionType.Audio, AudioSection);
+                return true;
+
+            case SectionType.Audio:
+                AudioSection(section.Value);
+                ReadPotentialPair(SectionType.Color, ColorSection);
+                return true;
+
+            case var _ when strictValidation:
+                throw new InvalidDataException($"Unknown section type {section.Value.Type.ToString("X2")}");
+        }
         return true;
+    }
+
+    private void CombinedSection(Section combinedSection)
+    {
+        ReadOnlySpan<byte> data = frameBuffer.AsSpan();
+
+        var colorSection = new Section(ref data);
+        if (colorSection.Type != SectionType.Color)
+            throw new InvalidDataException("Expected color section in combined section");
+        colorDecoder.Decode(data[0..colorSection.Size]);
+        data = data[colorSection.Size..];
+
+        var audioDataStart = SectionSize * 2 + colorSection.Size;
+        if (combinedSection.Size < audioDataStart)
+            return;
+
+        var audioSection = new Section(ref data);
+        if (audioSection.Type != SectionType.Audio)
+            throw new InvalidDataException("Expected audio section in combined section");
+        AudioSection(audioSection, audioDataStart);
+    }
+
+    private void ReadPotentialPair(SectionType expectedNextType, Action<Section, int> readAction)
+    {
+        var section = Section.TryRead(source);
+        if (section?.Type == expectedNextType)
+        {
+            EnsureFrameBufferSize(section.Value.Size);
+            if (source.Read(frameBuffer, 0, section.Value.Size) != section.Value.Size)
+                throw new EndOfStreamException("Could not read section content");
+            readAction(section.Value, 0);
+        }
+        else
+            nextSection = section;
+    }
+
+    private void ColorSection(Section section, int offset = 0)
+    {
+        if (frameBuffer.Length < offset + section.Size)
+            throw new InvalidDataException("Section is not large enough for reported color section");
+        colorDecoder.Decode(frameBuffer[offset..(offset + section.Size)]);
+    }
+
+    private void AudioSection(Section section, int offset = 0)
+    {
+        if (frameBuffer.Length < offset + section.Size)
+            throw new InvalidDataException("Section is not large enough for reported audio section");
+        if (section.Size < AudioHeaderSize)
+            throw new InvalidDataException("Audio section is too small");
+        audioDataRange = (offset + AudioHeaderSize)..(offset + section.Size);
     }
 
     private void EnsureFrameBufferSize(int size)
     {
         if (frameBuffer?.Length >= size)
             return;
-        frameReader?.Dispose();
         frameBuffer = new byte[size];
         frameStream = new MemoryStream(frameBuffer, writable: true);
-        frameReader = new BinaryReader(frameStream);
     }
 
     protected virtual void Dispose(bool disposing)
@@ -117,7 +148,6 @@ public unsafe class Decoder : IDisposable, IEnumerator<Frame>
             return;
         if (shouldDisposeStream)
             source.Dispose();
-        frameReader.Dispose();
     }
 
     public void Dispose()

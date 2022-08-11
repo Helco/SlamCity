@@ -1,34 +1,23 @@
 ﻿namespace DigiChrome;
 using System;
 using System.IO;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
-
-
-[StructLayout(LayoutKind.Sequential, Pack = 1)]
-internal struct ColorHeader
-{
-    public Section section;
-    public uint unknown1;
-    public byte unknown2;
-    public byte colorCount;
-    public byte width;
-    public byte height;
-}
+using static DigiChrome.Utils;
 
 internal unsafe partial class ColorDecoder
 {
     internal int Width => curWidth * BlockSize;
     internal int Height => curHeight * BlockSize;
     internal readonly Color[] Palette = new Color[byte.MaxValue + 1];
-    internal ReadOnlySpan<byte> Target => targets[curTarget];
+    internal ReadOnlySpan<byte> Target => isCleared ? ReadOnlySpan<byte>.Empty : targets[curTarget];
     private Span<byte> PrevTarget => targets[(curTarget + 1) % targets.Length];
 
     private byte[][] targets = { Array.Empty<byte>(), Array.Empty<byte>() };
     private int prevWidth, prevHeight, curWidth, curHeight;
     private int curTarget;
+    private bool isCleared = true;
+
+    public void Clear() => isCleared = true;
 
     public void Decode(ReadOnlySpan<byte> data)
     {
@@ -36,8 +25,9 @@ internal unsafe partial class ColorDecoder
         (prevWidth, prevHeight) = (curWidth, curHeight);
 
         var header = Header(ref data);
-        PaletteColors(ref data, header.colorCount);
+        PaletteColors(ref data, header.ColorCount);
         Blocks(ref data);
+        isCleared = false;
 
 #if DRAW_BLOCKS
         Palette[255] = new Color(0xffff);
@@ -47,27 +37,31 @@ internal unsafe partial class ColorDecoder
 
     private ColorHeader Header(ref ReadOnlySpan<byte> data)
     {
-        if (data.Length < sizeof(ColorHeader))
-            throw new EndOfStreamException("Color packet is not large enough for header");
-        var header = MemoryMarshal.Cast<byte, ColorHeader>(data)[0];
-        
-        var pixelSize = header.width * header.height * BlockSizeSqr;
+        var header = new ColorHeader(ref data);
+        (curWidth, curHeight) = (header.Width, header.Height);
+
+        var pixelSize = header.Width * header.Height * BlockSizeSqr;
         if (Target.Length < pixelSize)
             targets[curTarget] = new byte[pixelSize];
 
-        (curWidth, curHeight) = (header.width, header.height);
-
-        data = data[sizeof(ColorHeader)..];
         return header;
     }
 
     private void PaletteColors(ref ReadOnlySpan<byte> data, int count)
     {
-        var paletteSize = count * sizeof(Color);
+        var paletteSize = count * sizeof(ushort);
         if (data.Length < paletteSize)
-            throw new EndOfStreamException("Color packet is not large enough for palette");
-        data[..paletteSize].CopyTo(MemoryMarshal.AsBytes<Color>(Palette));
-        data = data[paletteSize..];
+            throw new EndOfStreamException("Color section is not large enough for palette");
+        if (BitConverter.IsLittleEndian)
+        {
+            data[..paletteSize].CopyTo(MemoryMarshal.AsBytes<Color>(Palette));
+            data = data[paletteSize..];
+        }
+        else
+        {
+            for (int i = 0; i < count; i++)
+                Palette[i] = new Color(ReadU16(ref data));
+        }
     }
 
     private void Blocks(ref ReadOnlySpan<byte> data)

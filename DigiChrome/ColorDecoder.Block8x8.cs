@@ -35,8 +35,7 @@ unsafe partial class ColorDecoder
     private void Block8x8_EmbeddedPattern(ref ReadOnlySpan<byte> data, byte* outPtr)
     {
         var colors = GetColors(ref data);
-        var pattern = SwapToBE(BitConverter.ToUInt64(data));
-        data = data[sizeof(ulong)..];
+        var pattern = Swap(ReadU64(ref data));
         Block8x8_Pattern(colors, pattern, outPtr);
     }
 
