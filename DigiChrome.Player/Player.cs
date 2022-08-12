@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using SDL2;
 using static SDL2.SDL;
 
@@ -16,15 +17,17 @@ public static unsafe class Player
     public static void Main(string[] args)
     {
         CheckSDL(SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS));
-        var window = SDL_CreateWindow("DigiChrome player", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 30, 30, default);
+        var window = SDL_CreateWindow("DigiChrome player", 200, 200, 30, 30, default);
         var renderer = SDL_CreateRenderer(window, -1, default);
         var isRunning = true;
 
-        using var fileStream = new FileStream(@"C:\dev\SlamCityG\CD1\SLAM\open.avc", FileMode.Open, FileAccess.Read);
-        using var decoder = new Decoder(fileStream);
+        var playlistI = 0;
+        var playlist = Directory.GetFiles(@"C:\dev\SlamCityG\CD1\SLAM\").Where(f => f.EndsWith(".avc")).ToArray();
+
+        Decoder decoder = null!;
         IntPtr texture = IntPtr.Zero;
         int texW = 30, texH = 30;
-        int scale = 1;
+        int scale = 4;
         bool isPaused = false;
 
         var audioFormat = new SDL_AudioSpec()
@@ -40,7 +43,16 @@ public static unsafe class Player
         SDL_PauseAudioDevice(audioDeviceId, pause_on: 0);
 
         bool hasFrame = false;
-        int iii = 0;
+
+        void OpenVideo()
+        {
+            hasFrame = false;
+            decoder?.Dispose();
+            decoder = new Decoder(new FileStream(playlist[playlistI], FileMode.Open, FileAccess.Read));
+            SDL_ClearQueuedAudio(audioDeviceId);
+            SDL_SetWindowTitle(window, "DigiChrome - " + Path.GetFileName(playlist[playlistI]));
+        }
+
         bool EnsureNextFrame()
         {
             if (hasFrame)
@@ -48,7 +60,8 @@ public static unsafe class Player
             hasFrame = decoder.MoveNext();
             if (!hasFrame)
             {
-                decoder.Reset();
+                playlistI = (playlistI + 1) % playlist.Length;
+                OpenVideo();
                 hasFrame = decoder.MoveNext();
             }
             if (hasFrame)
@@ -59,6 +72,7 @@ public static unsafe class Player
             return hasFrame;
         }
 
+        OpenVideo();
         while (isRunning)
         {
             var frameStart = SDL_GetTicks();
@@ -84,6 +98,16 @@ public static unsafe class Player
                     {
                         isPaused = !isPaused;
                         SDL_PauseAudioDevice(audioDeviceId, isPaused ? 1 : 0);
+                    }
+                    else if (ev.key.keysym.sym == SDL_Keycode.SDLK_LEFT)
+                    {
+                        playlistI = (playlistI + playlist.Length - 1) % playlist.Length;
+                        OpenVideo();
+                    }
+                    else if (ev.key.keysym.sym == SDL_Keycode.SDLK_RIGHT)
+                    {
+                        playlistI = (playlistI + 1) % playlist.Length;
+                        OpenVideo();
                     }
                 }
             }
@@ -118,7 +142,6 @@ public static unsafe class Player
                 hasFrame = false;
             }
             EnsureNextFrame();
-            iii++;
 
             if (texture != IntPtr.Zero)
                 SDL_RenderCopy(renderer, texture, IntPtr.Zero, IntPtr.Zero);
