@@ -24,15 +24,12 @@ unsafe partial class ColorDecoder
         var colors = GetColors(ref data);
         var pattern = ReadU16(ref data);
 
-        outPtr += 3 * curWidth * BlockSize;
         for (int i = 0; i < 4; i++)
         {
-            outPtr[3] = colors[offsets[^1] + PopHighestBit(ref pattern)];
-            outPtr[2] = colors[offsets[^1] + PopHighestBit(ref pattern)];
-            outPtr[1] = colors[offsets[^2] + PopHighestBit(ref pattern)];
-            outPtr[0] = colors[offsets[^2] + PopHighestBit(ref pattern)];
-            outPtr -= curWidth * BlockSize;
-            offsets = offsets[..^2];
+            for (int j = 0; j < 4; j++)
+                outPtr[j] = colors[offsets[j / 2] + PopLowestBit(ref pattern)];
+            outPtr += curWidth * BlockSize;
+            offsets = offsets[2..];
         }
     }
 }

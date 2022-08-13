@@ -37,24 +37,24 @@ internal static class Utils
         return val;
     }
 
-    public static int PopHighestBit(ref ushort val)
+    public static int PopLowestBit(ref ushort p)
     {
-        int bit = (val & 0x8000) > 0 ? 1 : 0;
-        val = unchecked((ushort)(val << 1));
-        return bit;
+        var result = p & 1;
+        p >>= 1;
+        return result;
     }
 
-    public static int PopHighestBit(ref uint val)
+    public static int PopLowestBit(ref uint p)
     {
-        int bit = (val & 0x8000_0000) > 0 ? 1 : 0;
-        val = unchecked(val << 1);
-        return bit;
+        var result = p & 1;
+        p >>= 1;
+        return (int)result;
     }
 
-    public static int PopHighestBit(ref ulong val)
+    public static int PopLowestBit(ref ulong p)
     {
-        int bit = (val & 0x8000_0000_0000_0000) > 0 ? 1 : 0;
-        val = unchecked(val << 1);
-        return bit;
+        var result = p & 1;
+        p >>= 1;
+        return (int)result;
     }
 }

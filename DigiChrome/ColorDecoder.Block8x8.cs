@@ -35,7 +35,7 @@ unsafe partial class ColorDecoder
     private void Block8x8_EmbeddedPattern(ref ReadOnlySpan<byte> data, byte* outPtr)
     {
         var colors = GetColors(ref data);
-        var pattern = Swap(ReadU64(ref data));
+        var pattern = ReadU64(ref data);
         Block8x8_Pattern(colors, pattern, outPtr);
     }
 
@@ -43,14 +43,8 @@ unsafe partial class ColorDecoder
     {
         for (int i = 0; i < BlockSize; i++)
         {
-            outPtr[7] = colors[PopHighestBit(ref pattern)];
-            outPtr[6] = colors[PopHighestBit(ref pattern)];
-            outPtr[5] = colors[PopHighestBit(ref pattern)];
-            outPtr[4] = colors[PopHighestBit(ref pattern)];
-            outPtr[3] = colors[PopHighestBit(ref pattern)];
-            outPtr[2] = colors[PopHighestBit(ref pattern)];
-            outPtr[1] = colors[PopHighestBit(ref pattern)];
-            outPtr[0] = colors[PopHighestBit(ref pattern)];
+            for (int j = 0; j < BlockSize; j++)
+                outPtr[j] = colors[PopLowestBit(ref pattern)];
             outPtr += curWidth * BlockSize;
         }
     }
